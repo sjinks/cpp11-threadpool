@@ -1,0 +1,14 @@
+language: cpp
+
+branches:
+  only:
+    - master
+
+sudo: false
+
+compiler:
+  - gcc
+  - clang
+
+script:
+  -  make CXXFLAGS="-O2 -Wall -Wextra"
