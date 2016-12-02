@@ -2,15 +2,15 @@ all: runner
 test: runner
 	./runner -v
 
-CXXFLAGS += -std=c++0x -I.
+override CXXFLAGS := $(CXXFLAGS) -std=c++0x -I. -Wall -Wextra
 
 CXX_SRC  = runner.cpp ../threadpool.cpp ../threadpool_p.cpp ../threadpoolthread.cpp
 CXX_DEPS = $(patsubst %.cpp,%.d,$(CXX_SRC))
 CXX_OBJ  = $(patsubst %.cpp,%.o,$(CXX_SRC))
 
 ifeq ($(MAKECMDGOALS),coverage)
-CXXFLAGS += -O0 --coverage
-LDFLAGS  += --coverage
+EXTRA_CXXFLAGS += -O0 --coverage
+EXTRA_LDFLAGS  += --coverage
 endif
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -25,7 +25,7 @@ clean-coverage:
 	-rm -rf .coverage coverage
 
 runner: runner.o ../threadpool.o ../threadpool_p.o ../threadpoolthread.o
-	$(CXX) $^ $(LDFLAGS) -pthread -o $@
+	$(CXX) $^ $(LDFLAGS) $(EXTRA_LDFLAGS) -pthread -o $@
 
 runner.o: runner.cpp
 
@@ -37,7 +37,7 @@ clean:
 	rm -f runner runner.cpp $(CXX_DEPS) $(CXX_OBJ)
 
 %.o: %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$<" -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c "$<" -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@"
 
 coverage: test clean-coverage
 	lcov --quiet --directory ../ --capture --base-directory=../ --output-file .coverage
