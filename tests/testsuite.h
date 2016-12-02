@@ -12,6 +12,7 @@
 #include "countertask.h"
 #include "countingrunnable.h"
 #include "fprunner.h"
+#include "semaphore.h"
 #include "sleepertask.h"
 #include "stresstest.h"
 #include "waitingtask.h"
@@ -110,6 +111,67 @@ public:
 		}
 
 		TS_ASSERT_EQUALS(ran.load(std::memory_order_relaxed), true);
+	}
+
+	void testDestruction()
+	{
+		static std::atomic<int>* value = nullptr;
+
+		class IntAccessor : public Runnable {
+		public:
+			virtual void run() override
+			{
+				for (int i=0; i<100; ++i) {
+					++(*value);
+					std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				}
+			}
+		};
+
+		value = new std::atomic<int>;
+		value->store(0, std::memory_order_relaxed);
+		ThreadPool* pool = new ThreadPool;
+		pool->start(new IntAccessor());
+		pool->start(new IntAccessor());
+		delete pool;
+		TS_ASSERT_EQUALS(value->load(std::memory_order_relaxed), 200);
+		delete value;
+	}
+
+	void testThreadRecycling()
+	{
+		static semaphore threadRecyclingSemaphore;
+		static std::thread::id recycledThread;
+
+		class ThreadRecorderTask : public Runnable {
+		public:
+			virtual void run() override
+			{
+				recycledThread = std::this_thread::get_id();
+				threadRecyclingSemaphore.release();
+			}
+		};
+
+		ThreadPool pool;
+
+		pool.start(new ThreadRecorderTask);
+		threadRecyclingSemaphore.acquire();
+		std::thread::id thread1 = recycledThread;
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+		pool.start(new ThreadRecorderTask);
+		threadRecyclingSemaphore.acquire();
+		std::thread::id thread2 = recycledThread;
+		TS_ASSERT_EQUALS(thread1, thread2);
+		TS_ASSERT_DIFFERS(thread1, std::thread::id());
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+		pool.start(new ThreadRecorderTask);
+		threadRecyclingSemaphore.acquire();
+		std::thread::id thread3 = recycledThread;
+		TS_ASSERT_EQUALS(thread3, thread2);
 	}
 
 	void testStart()
