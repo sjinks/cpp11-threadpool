@@ -11,5 +11,9 @@ compiler:
   - gcc
   - clang
 
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get -qq -y install cxxtest
+
 script:
-  -  make CXXFLAGS="-O2 -Wall -Wextra"
+  -  make CXXFLAGS="-O2 -Wall -Wextra" -C tests test
