@@ -4,7 +4,7 @@ test: runner
 
 override CXXFLAGS := $(CXXFLAGS) -std=c++0x -I. -Wall -Wextra
 
-CXX_SRC  = runner.cpp ../threadpool.cpp ../threadpool_p.cpp ../threadpoolthread.cpp
+CXX_SRC  = runner.cpp testsuite.cpp ../threadpool.cpp ../threadpool_p.cpp ../threadpoolthread.cpp
 CXX_DEPS = $(patsubst %.cpp,%.d,$(CXX_SRC))
 CXX_OBJ  = $(patsubst %.cpp,%.o,$(CXX_SRC))
 
@@ -24,7 +24,7 @@ endif
 clean-coverage:
 	-rm -rf .coverage coverage
 
-runner: runner.o ../threadpool.o ../threadpool_p.o ../threadpoolthread.o
+runner: $(CXX_OBJ)
 	$(CXX) $^ $(LDFLAGS) $(EXTRA_LDFLAGS) -pthread -o $@
 
 runner.o: runner.cpp

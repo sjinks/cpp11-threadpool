@@ -11,14 +11,106 @@
 #include "blockedtask.h"
 #include "countertask.h"
 #include "countingrunnable.h"
+#include "fprunner.h"
 #include "sleepertask.h"
 #include "stresstest.h"
 #include "waitingtask.h"
+
+extern int g_count;
+extern std::mutex g_mutex;
+void sleepingFunction();
+void emptyFunction();
+void notSleepingFunction();
+void sleepingFunctionWithMutex();
+void notSleepingFunctionWithMutex();
 
 class ThreadPoolTestSuite : public CxxTest::TestSuite {
 public:
 	ThreadPoolTestSuite() : m_count(0), m_pool(new ThreadPool) {}
 	~ThreadPoolTestSuite() { delete this->m_pool; }
+
+	void testRunFunction()
+	{
+		{
+			ThreadPool pool;
+			g_count = 0;
+			pool.start(createTask(notSleepingFunction));
+		}
+
+		TS_ASSERT_EQUALS(g_count, 1);
+	}
+
+	void testRunMultiple()
+	{
+		const int runs = 10;
+
+		{
+			ThreadPool pool;
+			g_count = 0;
+			for (int i=0; i<runs; ++i) {
+				pool.start(createTask(sleepingFunctionWithMutex));
+			}
+		}
+		TS_ASSERT_EQUALS(g_count, runs);
+
+		{
+			ThreadPool pool;
+			g_count = 0;
+			for (int i=0; i<runs; ++i) {
+				pool.start(createTask(notSleepingFunctionWithMutex));
+			}
+		}
+		TS_ASSERT_EQUALS(g_count, runs);
+
+		{
+			ThreadPool pool;
+			for (int i=0; i<500; ++i) {
+				pool.start(createTask(emptyFunction));
+			}
+		}
+	}
+
+	void testWaitComplete()
+	{
+		g_count = 0;
+		const int runs = 500;
+		for (int i=0; i<runs; ++i) {
+			ThreadPool pool;
+			pool.start(createTask(notSleepingFunction));
+		}
+
+		TS_ASSERT_EQUALS(g_count, runs);
+	}
+
+	void testRunTask()
+	{
+		static std::atomic<bool> ran;
+
+		class TestTask : public Runnable {
+		public:
+			virtual void run() override
+			{
+				ran.store(true, std::memory_order_relaxed);
+			}
+		};
+
+		ran.store(false, std::memory_order_relaxed);
+		ThreadPool pool;
+		pool.start(new TestTask);
+
+		auto start = std::chrono::steady_clock::now();
+		auto till  = start + std::chrono::seconds(5);
+
+		while (std::chrono::steady_clock::now() < till) {
+			if (ran.load(std::memory_order_relaxed)) {
+				break;
+			}
+
+			std::this_thread::yield();
+		}
+
+		TS_ASSERT_EQUALS(ran.load(std::memory_order_relaxed), true);
+	}
 
 	void testStart()
 	{
@@ -215,6 +307,8 @@ public:
 			TS_ASSERT_EQUALS(this->m_pool->maxThreadCount(), savedLimit);
 		}
 	}
+
+	
 
 private:
 	std::atomic<int> m_count;
