@@ -38,7 +38,7 @@ public:
 		this->m_count.store(0, std::memory_order_relaxed);
 		WaitingTask task(&this->m_count);
 		ThreadPool pool;
-		for (int i=0; i<pool.maxThreadCount(); ++i) {
+		for (std::size_t i=0; i<pool.maxThreadCount(); ++i) {
 			pool.start(&task);
 		}
 
@@ -127,7 +127,7 @@ public:
 			this->m_count.store(0, std::memory_order_relaxed);
 			{
 				auto n = std::chrono::steady_clock::now();
-				auto t = start + std::chrono::milliseconds(100);
+				auto t = n + std::chrono::milliseconds(100);
 				while (std::chrono::steady_clock::now() < t) {
 					pool.start(new CountingRunnable(&this->m_count));
 					++runs;
@@ -141,7 +141,7 @@ public:
 			this->m_count.store(0, std::memory_order_relaxed);
 			{
 				auto n = std::chrono::steady_clock::now();
-				auto t = start + std::chrono::milliseconds(200);
+				auto t = n + std::chrono::milliseconds(100);
 				while (std::chrono::steady_clock::now() < t) {
 					pool.start(new CountingRunnable(&this->m_count));
 					pool.start(new CountingRunnable(&this->m_count));
@@ -175,7 +175,7 @@ public:
 			{
 				ThreadPool pool;
 				auto n = std::chrono::steady_clock::now();
-				auto t = start + std::chrono::milliseconds(100);
+				auto t = n + std::chrono::milliseconds(100);
 				while (std::chrono::steady_clock::now() < t) {
 					pool.start(new CountingRunnable(&this->m_count));
 					++runs;
@@ -188,7 +188,7 @@ public:
 			{
 				ThreadPool pool;
 				auto n = std::chrono::steady_clock::now();
-				auto t = start + std::chrono::milliseconds(200);
+				auto t = n + std::chrono::milliseconds(100);
 				while (std::chrono::steady_clock::now() < t) {
 					pool.start(new CountingRunnable(&this->m_count));
 					pool.start(new CountingRunnable(&this->m_count));
