@@ -2,8 +2,6 @@ all: runner
 test: runner
 	./runner -v
 
-override CXXFLAGS := $(CXXFLAGS) -std=c++0x -I. -Wall -Wextra
-
 CXX_SRC  = runner.cpp testsuite.cpp ../threadpool.cpp ../threadpool_p.cpp ../threadpoolthread.cpp
 CXX_DEPS = $(patsubst %.cpp,%.d,$(CXX_SRC))
 CXX_OBJ  = $(patsubst %.cpp,%.o,$(CXX_SRC))
@@ -37,7 +35,7 @@ clean:
 	rm -f runner runner.cpp $(CXX_DEPS) $(CXX_OBJ)
 
 %.o: %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c "$<" -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@"
+	$(CXX) $(CPPFLAGS) -std=c++0x -Wall -Wextra $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c "$<" -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@"
 
 coverage: test clean-coverage
 	lcov --quiet --directory ../ --capture --base-directory=../ --output-file .coverage

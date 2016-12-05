@@ -16,4 +16,8 @@ before_install:
   - sudo apt-get -qq -y install cxxtest
 
 script:
-  -  make CXXFLAGS="-O2 -Wall -Wextra" -C tests test
+  -  make CXXFLAGS="-O0 -Wall -Wextra --coverage" LDFLAGS="--coverage" -C tests test
+
+after_success:
+  - ./.travis/after_success.sh
+
