@@ -28,7 +28,7 @@ runner: $(CXX_OBJ)
 runner.o: runner.cpp
 
 runner.cpp: testsuite.h
-	cxxtestgen --error-printer -o "$@" "$<"
+	python2 /usr/bin/cxxtestgen --error-printer -o "$@" "$<"
 
 clean: clean-coverage
 clean:
