@@ -30,10 +30,12 @@ jobs:
         run: echo "::add-matcher::$(pwd)/.github/problem-matcher-gcc.json"
 
       - name: Build
-        run: make -C tests
+        run: make
+        working-directory: tests
 
       - name: Test
-        run: make -C tests test
+        run: make test
+        working-directory: tests
 
   coverage:
     runs-on: ubuntu-latest
@@ -51,12 +53,15 @@ jobs:
         run: sudo apt-get -qq update && sudo apt-get -qq install cxxtest python2
 
       - name: Build
-        run: make -C tests
+        run: make
+        working-directory: tests
 
-      - name: Run tests
-        run: make -C tests test
+      - name: Test
+        run: make test
+        working-directory: tests
 
       - name: Upload to codecov
         run: /bin/bash <(curl -s https://codecov.io/bash)
+        working-directory: tests
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
