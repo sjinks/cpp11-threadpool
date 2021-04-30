@@ -1,0 +1,62 @@
+name: Build and Test
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+jobs:
+  ci:
+    if: ${{ !contains(github.event.head_commit.message, '[ci skip]') || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        compiler:
+          - CXX: g++
+          - CXX: clang++
+    name: "Build (${{ matrix.compiler.CXX }})"
+    runs-on: ubuntu-latest
+    env:
+      CFLAGS: -O2 -Wall -Werror
+      CXX: ${{ matrix.compiler.CXX }}
+    steps:
+      - name: Check out the source code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: sudo apt-get -qq update && sudo apt-get -qq install cxxtest python2
+
+      - name: Add error matcher
+        run: echo "::add-matcher::$(pwd)/.github/problem-matcher-gcc.json"
+
+      - name: Build
+        run: make -C tests
+
+      - name: Test
+        run: make -C tests test
+
+  coverage:
+    runs-on: ubuntu-latest
+    env:
+      CXX: g++
+      CXXFLAGS: -O0 -Wall -Wextra --coverage
+      LDFLAGS: --coverage
+      CC: gcc
+    name: Generate coverage
+    steps:
+      - name: Check out the source code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: sudo apt-get -qq update && sudo apt-get -qq install cxxtest python2
+
+      - name: Build
+        run: make -C tests
+
+      - name: Run tests
+        run: make -C tests test
+
+      - name: Upload to codecov
+        run: /bin/bash <(curl -s https://codecov.io/bash)
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
