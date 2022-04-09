@@ -23,7 +23,7 @@ jobs:
       CXX: ${{ matrix.compiler.CXX }}
     steps:
       - name: Check out the source code
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
 
       - name: Install dependencies
         run: sudo apt-get -qq update && sudo apt-get -qq install cxxtest python2
@@ -51,7 +51,7 @@ jobs:
     name: Generate coverage
     steps:
       - name: Check out the source code
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
 
       - name: Install dependencies
         run: sudo apt-get -qq update && sudo apt-get -qq install cxxtest python2
