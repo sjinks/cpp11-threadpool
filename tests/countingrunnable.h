@@ -2,13 +2,13 @@
 #define COUNTINGRUNNABLE_H
 
 #include <atomic>
-#include "../runnable.h"
+#include "../src/runnable.h"
 
 class CountingRunnable : public Runnable {
 public:
-	CountingRunnable(std::atomic<int>* count) : m_cnt(count) {}
+	explicit CountingRunnable(std::atomic<int>* count) : m_cnt(count) {}
 
-	virtual void run() override
+	void run() override
 	{
 		++(*this->m_cnt);
 	}

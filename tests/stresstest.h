@@ -1,13 +1,13 @@
 #ifndef STRESSTEST_H
 #define STRESSTEST_H
 
-#include "../runnable.h"
-#include "../threadpool.h"
+#include "../src/runnable.h"
+#include "../src/threadpool.h"
 #include "semaphore.h"
 
 class StressTestTask : public Runnable {
 public:
-	StressTestTask(ThreadPool* pool)
+	explicit StressTestTask(ThreadPool* pool)
 		: m_pool(pool)
 	{
 		this->setAutoDelete(false);
@@ -23,7 +23,7 @@ public:
 		this->m_s.acquire();
 	}
 
-	virtual void run() override
+	void run() override
 	{
 		this->m_s.release();
 	}

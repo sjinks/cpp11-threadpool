@@ -7,7 +7,7 @@
 
 class semaphore {
 public:
-	semaphore(int n = 0)
+	explicit semaphore(int n = 0)
 		: m_cnt(n)
 	{
 		assert(n >= 0);
@@ -17,10 +17,7 @@ public:
 	{
 		assert(n >= 0);
 		std::unique_lock<std::mutex> lock(this->m_mutex);
-		while (n > this->m_cnt) {
-			this->m_cv.wait(lock);
-		}
-
+		this->m_cv.wait(lock, [this, n] { return n <= this->m_cnt; });
 		this->m_cnt -= n;
 	}
 
@@ -29,7 +26,12 @@ public:
 		assert(n >= 0);
 		std::unique_lock<std::mutex> lock(this->m_mutex);
 		this->m_cnt += n;
-		(n > 1) ? this->m_cv.notify_all() : this->m_cv.notify_one();
+		if (n > 1) {
+			this->m_cv.notify_all();
+		}
+		else {
+			this->m_cv.notify_one();
+		}
 	}
 
 	int available()
@@ -38,7 +40,7 @@ public:
 		return this->m_cnt;
 	}
 
-	bool tryAcquire(int n = 1)
+	bool try_acquire(int n = 1)
 	{
 		assert(n >= 0);
 		std::unique_lock<std::mutex> lock(this->m_mutex);

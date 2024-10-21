@@ -1,11 +1,12 @@
 #ifndef COUNTER_TASK_H
 #define COUNTER_TASK_H
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <mutex>
 #include <thread>
-#include "../runnable.h"
+#include "../src/runnable.h"
 
 class CounterTask : public Runnable {
 public:
@@ -15,18 +16,24 @@ public:
 		this->setAutoDelete(false);
 	}
 
-	virtual void run() override
+	void run() override
 	{
 		{
-			std::unique_lock<std::mutex> lock(this->m_mutex);
+			const std::lock_guard<std::mutex> lock(this->m_mutex);
 			++(*this->m_active);
-			this->m_peak->store(std::max(this->m_peak->load(std::memory_order_relaxed), this->m_active->load(std::memory_order_relaxed)), std::memory_order_relaxed);
+			this->m_peak->store(
+				std::max(
+					this->m_peak->load(std::memory_order_relaxed), 
+					this->m_active->load(std::memory_order_relaxed)
+				),
+				std::memory_order_relaxed
+			);
 		}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 		{
-			std::unique_lock<std::mutex> lock(this->m_mutex);
+			const std::lock_guard<std::mutex> lock(this->m_mutex);
 			--(*this->m_active);
 		}
 	}

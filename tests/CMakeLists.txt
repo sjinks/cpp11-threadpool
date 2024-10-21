@@ -1,0 +1,4 @@
+add_executable(threadpool_test)
+target_sources(threadpool_test PRIVATE threadpool_test.cpp)
+target_link_libraries(threadpool_test PRIVATE threadpool GTest::gtest_main)
+gtest_discover_tests(threadpool_test)

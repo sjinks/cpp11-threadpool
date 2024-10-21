@@ -1,24 +1,24 @@
 #ifndef FPRUNNER_H
 #define FPRUNNER_H
 
-#include "../runnable.h"
+#include "../src/runnable.h"
 
-typedef void (*FunctionPointer)();
+using function_pointer = void (*)();
 
 class FPRunner : public Runnable {
 public:
-	FPRunner(FunctionPointer func) : m_func(func) {}
+	explicit FPRunner(function_pointer func) : m_func(func) {}
 
-	virtual void run() override
+	void run() override
 	{
 		this->m_func();
 	}
 
 private:
-	FunctionPointer m_func;
+	function_pointer m_func;
 };
 
-static inline Runnable* createTask(FunctionPointer f)
+static inline Runnable* createTask(function_pointer f)
 {
 	return new FPRunner(f);
 }

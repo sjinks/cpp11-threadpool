@@ -2,7 +2,8 @@
 #define SLEEPER_TASK_H
 
 #include <chrono>
-#include "../runnable.h"
+#include <thread>
+#include "../src/runnable.h"
 
 class SleeperTask : public Runnable {
 public:
@@ -11,7 +12,7 @@ public:
 		this->setAutoDelete(false);
 	}
 
-	virtual void run() override
+	void run() override
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
