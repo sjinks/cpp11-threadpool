@@ -11,13 +11,13 @@ class ThreadPoolThread {
 public:
 	explicit ThreadPoolThread(ThreadPoolPrivate* manager);
 
-	void operator()(void);
+	void operator()();
 
-	void registerThreadInactive(void);
+	void registerThreadInactive();
 
 	std::condition_variable runnableReady;
 	ThreadPoolPrivate* manager;
-	Runnable* runnable;
+	Runnable* runnable = nullptr;
 	std::thread thread;
 };
 

@@ -4,12 +4,12 @@
 #include "threadpoolthread.h"
 #include "runnable.h"
 
-ThreadPool::ThreadPool(void)
+ThreadPool::ThreadPool()
 	: d_ptr(new ThreadPoolPrivate())
 {
 }
 
-ThreadPool::~ThreadPool(void) noexcept
+ThreadPool::~ThreadPool()
 {
 	this->waitForDone();
 }
@@ -20,13 +20,13 @@ void ThreadPool::start(Runnable* runnable, int priority)
 		return;
 	}
 
-	ThreadPoolPrivate* const d = this->d_func();
+	auto* d = this->d_func();
 	std::unique_lock<std::mutex> locker(d->mutex);
 	if (!d->tryStart(runnable)) {
 		d->enqueueTask(runnable, priority);
 
 		if (!d->waitingThreads.empty()) {
-			ThreadPoolThread* t = d->waitingThreads.front();
+			auto* t = d->waitingThreads.front();
 			d->waitingThreads.pop_front();
 			t->runnableReady.notify_one();
 		}
@@ -39,7 +39,7 @@ bool ThreadPool::tryStart(Runnable* runnable)
 		return false;
 	}
 
-	ThreadPoolPrivate* const d = this->d_func();
+	auto* d = this->d_func();
 	std::unique_lock<std::mutex> locker(d->mutex);
 
 	if (d->allThreads.empty() && d->activeThreadCount() >= d->maxThreadCount) {
@@ -49,7 +49,7 @@ bool ThreadPool::tryStart(Runnable* runnable)
 	return d->tryStart(runnable);
 }
 
-unsigned long int ThreadPool::expiryTimeout(void) const
+unsigned long int ThreadPool::expiryTimeout() const
 {
 	return this->d_func()->expiryTimeout;
 }
@@ -59,14 +59,14 @@ void ThreadPool::setExpiryTimeout(unsigned long int v)
 	this->d_func()->expiryTimeout = v;
 }
 
-std::size_t ThreadPool::maxThreadCount(void) const
+std::size_t ThreadPool::maxThreadCount() const
 {
 	return this->d_func()->maxThreadCount;
 }
 
 void ThreadPool::setMaxThreadCount(std::size_t n)
 {
-	ThreadPoolPrivate* const d = this->d_func();
+	auto* d = this->d_func();
 	if (d->maxThreadCount == n) {
 		return;
 	}
@@ -75,37 +75,37 @@ void ThreadPool::setMaxThreadCount(std::size_t n)
 	d->tryToStartMoreThreads();
 }
 
-std::size_t ThreadPool::activeThreadCount(void) const
+std::size_t ThreadPool::activeThreadCount() const
 {
-	const ThreadPoolPrivate* const d = this->d_func();
-	std::unique_lock<std::mutex> locker(d->mutex);
+	auto* d = this->d_func();
+	const std::unique_lock<std::mutex> locker(d->mutex);
 	return d->activeThreadCount();
 }
 
-std::size_t ThreadPool::queueSize(void) const
+std::size_t ThreadPool::queueSize() const
 {
 	return this->d_func()->queue.size();
 }
 
-void ThreadPool::reserveThread(void)
+void ThreadPool::reserveThread()
 {
-	ThreadPoolPrivate* const d = this->d_func();
-	std::unique_lock<std::mutex> locker(d->mutex);
+	auto* d = this->d_func();
+	const std::unique_lock<std::mutex> locker(d->mutex);
 	++d->reservedThreads;
 }
 
-void ThreadPool::releaseThread(void)
+void ThreadPool::releaseThread()
 {
-	ThreadPoolPrivate* const d = this->d_func();
-	std::unique_lock<std::mutex> locker(d->mutex);
+	auto* d = this->d_func();
+	const std::unique_lock<std::mutex> locker(d->mutex);
 	--d->reservedThreads;
 	d->tryToStartMoreThreads();
 }
 
 bool ThreadPool::waitForDone(unsigned long int msec)
 {
-	ThreadPoolPrivate* const d = this->d_func();
-	bool ret = d->waitForDone(msec);
+	auto* d = this->d_func();
+	auto ret = d->waitForDone(msec);
 	if (ret) {
 		d->reset();
 	}
@@ -113,14 +113,14 @@ bool ThreadPool::waitForDone(unsigned long int msec)
 	return ret;
 }
 
-void ThreadPool::clear(void)
+void ThreadPool::clear()
 {
 	this->d_func()->clear();
 }
 
 void ThreadPool::cancel(Runnable* runnable)
 {
-	ThreadPoolPrivate* const d = this->d_func();
+	auto* d = this->d_func();
 	if (!d->stealRunnable(runnable)) {
 		return;
 	}

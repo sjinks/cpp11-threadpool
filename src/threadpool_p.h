@@ -12,21 +12,21 @@ class ThreadPoolThread;
 
 class ThreadPoolPrivate {
 public:
-	ThreadPoolPrivate(void);
+	ThreadPoolPrivate();
 
 	bool tryStart(Runnable* runnable);
 	void enqueueTask(Runnable* runnable, int priority = 0);
 
-	std::size_t activeThreadCount(void) const;
+	std::size_t activeThreadCount() const;
 
-	void tryToStartMoreThreads(void);
-	bool tooManyThreadsActive(void) const;
+	void tryToStartMoreThreads();
+	bool tooManyThreadsActive() const;
 
 	void startThread(Runnable* runnable = nullptr);
-	void reset(void);
+	void reset();
 	bool waitForDone(unsigned long int msecs);
-	void clear(void);
-	bool stealRunnable(Runnable* runnable);
+	void clear();
+	bool stealRunnable(const Runnable* runnable);
 	void stealAndRunRunnable(Runnable* runnable);
 
 	mutable std::mutex mutex;
@@ -36,11 +36,11 @@ public:
 	std::list<std::pair<Runnable*, int> > queue;
 	std::condition_variable noActiveThreads;
 
-	bool isExiting;
-	unsigned long int expiryTimeout;
+	bool isExiting = false;
+	unsigned long int expiryTimeout = 30000;
 	std::size_t maxThreadCount;
-	std::size_t reservedThreads;
-	std::size_t activeThreads;
+	std::size_t reservedThreads = 0;
+	std::size_t activeThreads = 0;
 };
 
 #endif // THREADPOOL_P_H

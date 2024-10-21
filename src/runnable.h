@@ -3,15 +3,14 @@
 
 class Runnable {
 public:
-	Runnable(void) : m_ref(0) {}
-	virtual ~Runnable(void) noexcept {}
+	virtual ~Runnable(void) = default;
 
-	bool autoDelete(void) const noexcept { return this->m_ref != -1; }
+	bool autoDelete() const noexcept { return this->m_ref != -1; }
 	void setAutoDelete(bool v) noexcept { this->m_ref = v ? 0 : -1; }
 
-	virtual void run(void) = 0;
+	virtual void run() = 0;
 private:
-	int m_ref;
+	int m_ref = 0;
 
 	friend class ThreadPool;
 	friend class ThreadPoolPrivate;
