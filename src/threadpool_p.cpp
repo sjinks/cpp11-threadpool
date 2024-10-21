@@ -42,8 +42,8 @@ bool ThreadPoolPrivate::tryStart(Runnable* task)
 		}
 
 		t->runnable = task;
-		t->thread->join();
-		t->thread = std::move(new std::thread(&ThreadPoolThread::operator(), t));
+		t->thread.join();
+		t->thread = std::thread(&ThreadPoolThread::operator(), t);
 		return true;
 	}
 
@@ -105,7 +105,7 @@ void ThreadPoolPrivate::startThread(Runnable* runnable)
 	}
 
 	thread->runnable = runnable;
-	thread->thread   = new std::thread(&ThreadPoolThread::operator(), thread.get());
+	thread->thread   = std::thread(&ThreadPoolThread::operator(), thread.get());
 	thread.release();
 }
 
@@ -121,8 +121,7 @@ void ThreadPoolPrivate::reset(void)
 
 		for (auto it = allThreadsCopy.begin(); it != allThreadsCopy.end(); ++it) {
 			(*it)->runnableReady.notify_all();
-			(*it)->thread->join();
-			delete (*it)->thread;
+			(*it)->thread.join();
 			delete (*it);
 		}
 

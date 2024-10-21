@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <mutex>
 #include <thread>
 #include "threadpoolthread.h"
@@ -5,7 +6,7 @@
 #include "runnable.h"
 
 ThreadPoolThread::ThreadPoolThread(ThreadPoolPrivate* manager)
-	: manager(manager), runnable(nullptr), thread(nullptr)
+	: manager(manager), runnable(nullptr), thread()
 {
 }
 
@@ -54,12 +55,10 @@ void ThreadPoolThread::operator()(void)
 			this->runnableReady.wait_for(locker, std::chrono::milliseconds(manager->expiryTimeout));
 			++manager->activeThreads;
 
-			for (auto it = this->manager->waitingThreads.begin(); it != this->manager->waitingThreads.end(); ++it) {
-				if (*it == this) {
-					this->manager->waitingThreads.erase(it);
-					expired = true;
-					break;
-				}
+			auto it = std::find(this->manager->waitingThreads.begin(), this->manager->waitingThreads.end(), this);
+			if (it != this->manager->waitingThreads.end()) {
+				this->manager->waitingThreads.erase(it);
+				expired = true;
 			}
 		}
 

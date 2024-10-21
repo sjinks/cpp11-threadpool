@@ -2,17 +2,14 @@
 #define THREADPOOLTHREAD_H
 
 #include <condition_variable>
+#include <thread>
 
 class Runnable;
 class ThreadPoolPrivate;
 
-namespace std {
-	class thread;
-}
-
 class ThreadPoolThread {
 public:
-	ThreadPoolThread(ThreadPoolPrivate* manager);
+	explicit ThreadPoolThread(ThreadPoolPrivate* manager);
 
 	void operator()(void);
 
@@ -21,7 +18,7 @@ public:
 	std::condition_variable runnableReady;
 	ThreadPoolPrivate* manager;
 	Runnable* runnable;
-	std::thread* thread;
+	std::thread thread;
 };
 
 #endif // THREADPOOLTHREAD_H

@@ -3,7 +3,6 @@
 
 #include <limits>
 #include <memory>
-#include <vector>
 
 class Runnable;
 class ThreadPoolPrivate;
