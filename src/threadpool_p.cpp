@@ -64,7 +64,7 @@ inline bool operator<(const std::pair<Runnable*, int>&p, int priority)
 void ThreadPoolPrivate::enqueueTask(Runnable* runnable, int priority)
 {
 	if (runnable->autoDelete()) {
-		 ++runnable->m_ref;
+		++runnable->m_ref;
 	}
 
 	auto it = std::upper_bound(this->queue.begin(), this->queue.end(), priority);

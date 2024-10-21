@@ -4,11 +4,11 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
-#include "../runnable.h"
+#include "../src/runnable.h"
 
 class BlockedTask : public Runnable {
 public:
-	virtual void run() override
+	void run() override
 	{
 		this->lockMutex();
 		this->unlockMutex();

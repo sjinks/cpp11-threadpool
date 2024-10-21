@@ -2,17 +2,17 @@
 #define WAITING_TASK_H
 
 #include <atomic>
-#include "../runnable.h"
+#include "../src/runnable.h"
 #include "semaphore.h"
 
 class WaitingTask : public Runnable {
 public:
-	WaitingTask(std::atomic<int>* count) : m_cnt(count)
+	explicit WaitingTask(std::atomic<int>* count) : m_cnt(count)
 	{
 		this->setAutoDelete(false);
 	}
 
-	virtual void run() override
+	void run() override
 	{
 		this->m_s.acquire();
 		++(*this->m_cnt);
