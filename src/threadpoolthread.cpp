@@ -1,11 +1,11 @@
+#include <algorithm>
 #include <mutex>
-#include <thread>
 #include "threadpoolthread.h"
 #include "threadpool_p.h"
 #include "runnable.h"
 
 ThreadPoolThread::ThreadPoolThread(ThreadPoolPrivate* manager)
-	: manager(manager), runnable(nullptr), thread(nullptr)
+	: manager(manager)
 {
 }
 
@@ -13,12 +13,12 @@ void ThreadPoolThread::operator()(void)
 {
 	std::unique_lock<std::mutex> locker(this->manager->mutex);
 	while (true) {
-		Runnable* r    = this->runnable;
+		auto* r        = this->runnable;
 		this->runnable = nullptr;
 
 		do {
 			if (r) {
-				const bool auto_delete = r->autoDelete();
+				const auto auto_delete = r->autoDelete();
 
 				locker.unlock();
 				r->run();
@@ -54,12 +54,10 @@ void ThreadPoolThread::operator()(void)
 			this->runnableReady.wait_for(locker, std::chrono::milliseconds(manager->expiryTimeout));
 			++manager->activeThreads;
 
-			for (auto it = this->manager->waitingThreads.begin(); it != this->manager->waitingThreads.end(); ++it) {
-				if (*it == this) {
-					this->manager->waitingThreads.erase(it);
-					expired = true;
-					break;
-				}
+			auto it = std::find(this->manager->waitingThreads.begin(), this->manager->waitingThreads.end(), this);
+			if (it != this->manager->waitingThreads.end()) {
+				this->manager->waitingThreads.erase(it);
+				expired = true;
 			}
 		}
 
@@ -71,7 +69,7 @@ void ThreadPoolThread::operator()(void)
 	}
 }
 
-void ThreadPoolThread::registerThreadInactive(void)
+void ThreadPoolThread::registerThreadInactive()
 {
 	if (--this->manager->activeThreads == 0) {
 		this->manager->noActiveThreads.notify_all();

@@ -5,10 +5,8 @@
 #include "threadpoolthread.h"
 #include "runnable.h"
 
-ThreadPoolPrivate::ThreadPoolPrivate(void)
-	: isExiting(false), expiryTimeout(30000),
-	  maxThreadCount(std::max(std::thread::hardware_concurrency(), 1u)),
-	  reservedThreads(0), activeThreads(0)
+ThreadPoolPrivate::ThreadPoolPrivate()
+	: maxThreadCount(std::max(std::thread::hardware_concurrency(), 1u))
 {
 }
 
@@ -25,14 +23,14 @@ bool ThreadPoolPrivate::tryStart(Runnable* task)
 
 	if (this->waitingThreads.size()) {
 		this->enqueueTask(task);
-		ThreadPoolThread* t = this->waitingThreads.front();
+		auto* t = this->waitingThreads.front();
 		this->waitingThreads.pop_front();
 		t->runnableReady.notify_one();
 		return true;
 	}
 
 	if (this->expiredThreads.size()) {
-		ThreadPoolThread* t = this->expiredThreads.front();
+		auto* t = this->expiredThreads.front();
 		this->expiredThreads.pop_front();
 
 		++this->activeThreads;
@@ -42,8 +40,8 @@ bool ThreadPoolPrivate::tryStart(Runnable* task)
 		}
 
 		t->runnable = task;
-		t->thread->join();
-		t->thread = std::move(new std::thread(&ThreadPoolThread::operator(), t));
+		t->thread.join();
+		t->thread = std::thread(&ThreadPoolThread::operator(), t);
 		return true;
 	}
 
@@ -71,7 +69,7 @@ void ThreadPoolPrivate::enqueueTask(Runnable* runnable, int priority)
 	this->queue.insert(it, std::make_pair(runnable, priority));
 }
 
-std::size_t ThreadPoolPrivate::activeThreadCount(void) const
+std::size_t ThreadPoolPrivate::activeThreadCount() const
 {
 	return
 		  this->allThreads.size()
@@ -81,16 +79,16 @@ std::size_t ThreadPoolPrivate::activeThreadCount(void) const
 	;
 }
 
-void ThreadPoolPrivate::tryToStartMoreThreads(void)
+void ThreadPoolPrivate::tryToStartMoreThreads()
 {
 	while (!this->queue.empty() && this->tryStart(this->queue.front().first)) {
 		this->queue.pop_front();
 	}
 }
 
-bool ThreadPoolPrivate::tooManyThreadsActive(void) const
+bool ThreadPoolPrivate::tooManyThreadsActive() const
 {
-	const std::size_t activeThreadCount = this->activeThreadCount();
+	const auto activeThreadCount = this->activeThreadCount();
 	return activeThreadCount > this->maxThreadCount && (activeThreadCount - this->reservedThreads) > 1;
 }
 
@@ -105,11 +103,11 @@ void ThreadPoolPrivate::startThread(Runnable* runnable)
 	}
 
 	thread->runnable = runnable;
-	thread->thread   = new std::thread(&ThreadPoolThread::operator(), thread.get());
+	thread->thread   = std::thread(&ThreadPoolThread::operator(), thread.get());
 	thread.release();
 }
 
-void ThreadPoolPrivate::reset(void)
+void ThreadPoolPrivate::reset()
 {
 	std::unique_lock<std::mutex> locker(this->mutex);
 	this->isExiting = true;
@@ -119,11 +117,10 @@ void ThreadPoolPrivate::reset(void)
 		allThreadsCopy.swap(this->allThreads);
 		locker.unlock();
 
-		for (auto it = allThreadsCopy.begin(); it != allThreadsCopy.end(); ++it) {
-			(*it)->runnableReady.notify_all();
-			(*it)->thread->join();
-			delete (*it)->thread;
-			delete (*it);
+		for (auto it : allThreadsCopy) {
+			it->runnableReady.notify_all();
+			it->thread.join();
+			delete it;
 		}
 
 		locker.lock();
@@ -138,30 +135,27 @@ bool ThreadPoolPrivate::waitForDone(unsigned long int msecs)
 {
 	std::unique_lock<std::mutex> locker(this->mutex);
 	if (msecs == std::numeric_limits<unsigned long int>::max()) {
-		while (!(this->queue.empty() && this->activeThreads == 0)) {
-			this->noActiveThreads.wait(locker);
-		}
+		this->noActiveThreads.wait(locker, [this] {
+			return this->queue.empty() && this->activeThreads == 0;
+		});
 	}
 	else {
-		auto start = std::chrono::steady_clock::now();
-		auto till  = start + std::chrono::milliseconds(msecs);
-		while (
-			   !(this->queue.empty() && this->activeThreads == 0)
-			&& std::chrono::steady_clock::now() < till
-		) {
-			this->noActiveThreads.wait_until(locker, till);
-		}
+		const auto duration = std::chrono::milliseconds(msecs);
+
+		this->noActiveThreads.wait_for(locker, duration, [this] {
+			return this->queue.empty() && this->activeThreads == 0;
+		});
 	}
 
 	return this->queue.empty() && !this->activeThreads;
 }
 
-void ThreadPoolPrivate::clear(void)
+void ThreadPoolPrivate::clear()
 {
 	std::unique_lock<std::mutex> locker(this->mutex);
 	while (!this->queue.empty()) {
-		std::pair<Runnable*, int>& item = this->queue.front();
-		Runnable* r = item.first;
+		auto& item = this->queue.front();
+		auto* r = item.first;
 		if (r->autoDelete() && --r->m_ref) {
 			delete r;
 		}
@@ -170,7 +164,7 @@ void ThreadPoolPrivate::clear(void)
 	}
 }
 
-bool ThreadPoolPrivate::stealRunnable(Runnable* runnable)
+bool ThreadPoolPrivate::stealRunnable(const Runnable* runnable)
 {
 	if (!runnable) {
 		return false;
@@ -194,16 +188,14 @@ bool ThreadPoolPrivate::stealRunnable(Runnable* runnable)
 
 void ThreadPoolPrivate::stealAndRunRunnable(Runnable* runnable)
 {
-	if (!this->stealRunnable(runnable)) {
-		return;
-	}
+	if (this->stealRunnable(runnable)) {
+		const auto autoDelete = runnable->autoDelete();
+		bool del = autoDelete && !--runnable->m_ref;
 
-	const bool autoDelete = runnable->autoDelete();
-	bool del = autoDelete && !--runnable->m_ref;
+		runnable->run();
 
-	runnable->run();
-
-	if (del) {
-		delete runnable;
+		if (del) {
+			delete runnable;
+		}
 	}
 }
